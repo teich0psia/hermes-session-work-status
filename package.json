@@ -1,0 +1,16 @@
+{
+  "name": "hermes-session-work-status",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/core.test.mjs",
+    "test:ui": "node scripts/build-harness.mjs && .venv/bin/python tests/run_ui.py",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@tabler/icons-react": "^3.44.0",
+    "esbuild": "0.25.12"
+  }
+}

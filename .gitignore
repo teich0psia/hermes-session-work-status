@@ -1,0 +1,7 @@
+node_modules/
+.venv/
+.playwright/
+tests/harness/bundle.js
+evidence/
+__pycache__/
+*.pyc
