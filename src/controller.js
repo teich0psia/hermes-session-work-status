@@ -1,14 +1,15 @@
-import { identityKey, readCatalog, readStatuses, resolveRow, saveStatus } from './core.js';
+import { identityKey, readCatalog, readStatuses, registeredItems, resolveRow, saveStatus, validRoute } from './core.js';
 
-export function createController(ctx, host, makeAtom, rawStorage) {
-  const state = makeAtom({ entries: {}, storageIssue: '', message: '', catalog: { items: [], issues: [], complete: false }, loading: false });
+export function createController(ctx, host, makeAtom, rawStorage, readPage) {
+  const state = makeAtom({ entries: {}, details: {}, storageIssue: '', message: '', catalog: { items: [], issues: [], complete: false }, loading: false });
   let disposed = false;
   let inFlight = null;
   let epoch = 0;
   let loaded = false;
+  let loadedAt = 0;
   const update = patch => { if (!disposed) state.set({ ...state.get(), ...patch }); };
   function reloadStorage() {
-    try { update({ entries: readStatuses(ctx.storage, rawStorage).entries, storageIssue: '' }); }
+    try { const saved = readStatuses(ctx.storage, rawStorage); update({ entries: saved.entries, details: saved.details || {}, storageIssue: '' }); }
     catch (error) { update({ storageIssue: error.message }); }
   }
   reloadStorage();
@@ -21,8 +22,8 @@ export function createController(ctx, host, makeAtom, rawStorage) {
       do {
         generation = epoch;
         try {
-          const catalog = await readCatalog(host, () => !disposed && generation === epoch);
-          if (generation === epoch) { loaded = true; update({ catalog }); }
+          const catalog = await readCatalog(host, () => !disposed && generation === epoch, readPage);
+          if (generation === epoch) { loaded = true; loadedAt = Date.now(); update({ catalog }); }
         } catch (error) {
           if (generation === epoch) update({ catalog: { items: [], issues: [error.message], complete: false } });
         }
@@ -41,13 +42,19 @@ export function createController(ctx, host, makeAtom, rawStorage) {
     if (disposed) return;
     try {
       const current = state.get();
-      if (current.loading || !current.catalog.items.some(entry => identityKey(entry) === identityKey(item))) throw new Error('一覧を更新してから変更してください。');
+      if (!validRoute(item.route) && (fromRow || !Object.hasOwn(current.entries, identityKey(item)))) throw new Error('所有者を確認できません。');
       if (fromRow) {
         const resolved = resolveRow(current.catalog, item.sessionId);
-        if (!resolved.item || identityKey(resolved.item) !== identityKey(item)) throw new Error(resolved.reason || '所有者が変わりました。');
-      }
-      const saved = saveStatus(ctx.storage, rawStorage, item, next);
-      update({ entries: saved.entries, storageIssue: '', message: '' });
+        if (current.loading || !resolved.item || identityKey(resolved.item) !== identityKey(item)) throw new Error(resolved.issue || '所有者が変更されました。メニューを開き直してください。');
+        item = resolved.item;
+      } else if (!registeredItems(current.catalog, current.entries, current.details).some(entry => identityKey(entry) === identityKey(item))) throw new Error('登録済みの状態を確認してください。');
+      // Retain dates only for this exact owner/durable id.
+      const catalogItem = current.catalog.items.find(entry => identityKey(entry) === identityKey(item));
+      const saved = saveStatus(ctx.storage, rawStorage, { ...item,
+        last_active: catalogItem?.last_active || item.last_active,
+        started_at: catalogItem?.started_at || item.started_at
+      }, next);
+      update({ entries: saved.entries, details: saved.details || {}, storageIssue: '', message: '' });
     } catch (error) {
       reloadStorage();
       update({ message: error.message });
@@ -63,5 +70,8 @@ export function createController(ctx, host, makeAtom, rawStorage) {
       if (event.key === null || event.key === 'hermes.plugin.session-work-status.work-status-v1') reloadStorage();
     });
   }
-  return { state, refresh, setStatus, ensure: () => { if (!loaded) void refresh(); } };
+  const ensure = () => !loaded || Date.now() - loadedAt >= 30_000 ? refresh() : Promise.resolve();
+  return { state, refresh, ensure,
+    setStatus: (item, next) => setStatus(item, next),
+    setRowStatus: (item, next) => setStatus(item, next, true) };
 }

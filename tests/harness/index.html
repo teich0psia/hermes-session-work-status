@@ -1,17 +1,34 @@
 <!doctype html>
 <html lang="ja"><meta charset="UTF-8"><link rel="icon" href="data:,"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Session Work Status — SDK harness (not Desktop)</title>
 <style>
-:root { --ui-text-primary: #e6e8ef; --ui-text-secondary: #a8b1c4; --ui-stroke-secondary: #39435a; --ui-bg-secondary: #202838; --ui-accent: #bba5ff; color-scheme: dark; }
-body { margin: 0; background: #171d29; color: var(--ui-text-primary); font: 13px sans-serif; }
-main { display: flex; gap: 12px; height: 600px; padding: 16px; }
-aside { width: 260px; flex-shrink: 0; }
-h2 { font-size: 13px; }
-[data-row] { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--ui-stroke-secondary); }
-#pane { width: 300px; border: 1px solid var(--ui-stroke-secondary); }
-button { cursor: pointer; color: var(--ui-text-primary); background: var(--ui-bg-secondary); border: 1px solid var(--ui-stroke-secondary); border-radius: 3px; padding: 4px 6px; font: inherit; }
-button:disabled { opacity: .55; } button[aria-pressed=true] { border-color: var(--ui-accent); }
-[role=menu] { background: var(--ui-bg-secondary); color: var(--ui-text-primary); padding: 4px; border: 1px solid var(--ui-stroke-secondary); z-index: 100; }
-[role=menuitem] { padding: 5px 8px; cursor: pointer; } [data-highlighted] { outline: 1px solid var(--ui-accent); }
+/* Fixture styling only: not a claim to reproduce the production Tailwind skin. */
+:root { --ui-text-primary: #e6edf3; --ui-text-secondary: #95a6b5; --ui-text-quaternary: #597080; --ui-stroke-secondary: #293944; --ui-bg-secondary: #131e27; --ui-bg-card: #20313f; --ui-accent: #46bfe9; --ui-yellow: #d8ae48; --ui-green: #68c397; color-scheme: dark; }
+* { box-sizing:border-box; }
+body { margin: 0; background: #0c141c; color: var(--ui-text-primary); font: 13px sans-serif; }
+main { display: flex; gap: 24px; height: 100vh; padding: 24px; }
+aside { width: 270px; flex-shrink: 0; }
+h2 { font-size: 14px; margin: 0 0 18px; }
+aside > div { display:flex; align-items:center; border-bottom: 1px solid var(--ui-stroke-secondary); }
+aside > div > button { flex-shrink:0; }
+[data-row] { display: flex; flex:1; justify-content: space-between; align-items: center; min-height:52px; border:0; background:transparent; text-align:left; }
+[data-slot=dialog-overlay] { position: fixed; inset: 0; background: #0008; z-index: 90; }
+[data-slot=dialog-content] { position: fixed; top: 16vh; left: 57%; transform: translateX(-50%); z-index: 95; background: var(--ui-bg-secondary); border:1px solid var(--ui-stroke-secondary); border-radius:10px; }
+[data-slot=dialog-content] > div:first-child { display:grid; gap:12px; padding:18px; max-height:80vh; overflow-y:auto; overscroll-behavior:contain; }
+[data-slot=dialog-title] { margin:0 28px 8px 0; font-size:16px; }
+[data-slot=dialog-description] { margin:0; color:var(--ui-text-secondary); font-size:11px; }
+[data-slot=dialog-close-button] { position:absolute; right:10px; top:10px; border:0; background:transparent; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+button { cursor: pointer; color: var(--ui-text-primary); background: transparent; border: 1px solid var(--ui-stroke-secondary); border-radius: 5px; padding: 5px 8px; font: inherit; }
+button[data-variant=ghost] { border-color:transparent; }
+button:disabled { opacity: .55; cursor:default; }
+button[aria-pressed=true] { border-color: var(--ui-accent); color:var(--ui-accent); }
+button[aria-label^="会話を選択"] { border:0; padding:2px 0; }
+input { width:100%; border:1px solid var(--ui-stroke-secondary); padding:9px 11px; border-radius:6px; background: #101a23; color:var(--ui-text-primary); font:inherit; }
+select { padding:4px; border:1px solid var(--ui-stroke-secondary); border-radius:4px; font:inherit; }
+[role=menu] { background: var(--ui-bg-secondary); color: var(--ui-text-primary); min-width:150px; padding: 4px; border: 1px solid var(--ui-stroke-secondary); border-radius:6px; z-index: 100; }
+[role=menuitem] { padding: 7px 9px; cursor: pointer; }
+[data-highlighted] { background:var(--ui-bg-card); outline:none; }
+[data-disabled] { opacity:.45; cursor:default; }
 button:focus-visible, select:focus-visible { outline: 2px solid var(--ui-accent); }
-@media(max-width:600px) { main { display:block; height:auto; padding:8px; } aside { width:100%; } #pane { width:100%; height:580px; margin-top:12px; } }
+@media(max-width:600px) { main { padding:8px; } aside { width:200px; } [data-slot=dialog-content] { left:50%; top:8vh; } }
 </style><div id="root"></div><script type="module" src="./bundle.js"></script></html>

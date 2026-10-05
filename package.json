@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/core.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/direct-menu.test.mjs",
+    "test:owner": "node tests/owner-boundary.test.mjs",
     "test:ui": "node scripts/build-harness.mjs && .venv/bin/python tests/run_ui.py",
     "check": "npm run build && npm test"
   },

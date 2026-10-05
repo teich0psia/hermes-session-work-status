@@ -2,6 +2,7 @@ node_modules/
 .venv/
 .playwright/
 tests/harness/bundle.js
+tests/harness/bundle.css
 evidence/
 __pycache__/
 *.pyc

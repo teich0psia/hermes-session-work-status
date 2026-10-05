@@ -1,0 +1,72 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { registeredItems, sortItems, identityKey, filterItems, saveStatus, STORAGE_KEY } from '../src/core.js';
+import { createController } from '../src/controller.js';
+const atom = initial => { let value = initial; return { get: () => value, set: next => { value = next; } }; };
+const route = { connectionId: 'remote', mode: 'remote', profile: 'alias', targetProfile: 'backend' };
+const a = { route, sessionId: 'old', title: 'Zulu', last_active: 40, started_at: 1 };
+const b = { route, sessionId: 'new', title: 'Alpha', last_active: 20, started_at: 3 };
+test('registered-only, legacy unclassified ignored, saved outside-window visible without inventing history', () => {
+ const entries = { [identityKey(a)]: 'done', [identityKey(b)]: 'unclassified' };
+ const items = registeredItems({ items: [b], routes: [route] }, entries, { [identityKey(a)]: a });
+ assert.equal(items.length, 1); assert.equal(items[0].title, 'Zulu'); assert.equal(items[0].outsideWindow, true);
+ assert.equal(items[0].available, true); assert.equal(items[0].route.profile, 'alias');
+ const unknownDates = registeredItems({ items: [{ ...a, last_active: 0, started_at: 0 }], routes: [route] }, entries, { [identityKey(a)]: a });
+ assert.equal(unknownDates[0].last_active, 40); assert.equal(unknownDates[0].started_at, 1);
+ assert.equal(filterItems(items, entries, 'paused').length, 0);
+ const disconnected = registeredItems({ items: [], routes: [] }, entries, { [identityKey(a)]: a });
+ assert.equal(disconnected.length, 1); assert.equal(disconnected[0].available, false);
+ const legacy = registeredItems({ items: [], routes: [] }, entries)[0];
+ assert.equal(legacy.route.mode, undefined); assert.equal(legacy.available, false);
+ let raw = JSON.stringify({ version: 1, entries });
+ const storage = { get: () => JSON.parse(raw), set: (_key, value) => { raw = JSON.stringify(value); } };
+ const changed = saveStatus(storage, { getItem: () => raw }, legacy, 'paused');
+ assert.equal(changed.entries[identityKey(a)], 'paused');
+ assert.equal(changed.details[identityKey(a)], undefined);
+ assert.equal(saveStatus(storage, { getItem: () => raw }, legacy, 'unclassified').entries[identityKey(a)], undefined);
+});
+test('recent activity and creation are separate deterministic orders; input order stays frozen', () => {
+ const items = [b, a];
+ assert.equal(sortItems(items, 'recent')[0], a); assert.equal(sortItems(items, 'created')[0], b);
+ assert.equal(sortItems(items, 'title')[0], b); assert.deepEqual(items, [b, a]);
+});
+function fixture() {
+ let raw = null;
+ const rawStorage = { getItem: () => raw };
+ const storage = { get: (_key, fallback) => raw === null ? fallback : JSON.parse(raw), set: (_key, value) => { raw = JSON.stringify(value); } };
+ return { storage, rawStorage };
+}
+test('timestamp-less saves preserve same-owner saved metadata and outside-window sort', () => {
+ const { storage, rawStorage } = fixture();
+ saveStatus(storage, rawStorage, a, 'working'); saveStatus(storage, rawStorage, b, 'done');
+ const saved = saveStatus(storage, rawStorage, { sessionId: a.sessionId, title: 'Retitled', route }, 'paused');
+ assert.equal(saved.details[identityKey(a)].last_active, 40);
+ assert.equal(saved.details[identityKey(a)].started_at, 1);
+ assert.equal(saved.details[identityKey(a)].title, 'Retitled');
+ const items = registeredItems({ items: [], routes: [route] }, saved.entries, saved.details);
+ assert.equal(sortItems(items, 'recent')[0].sessionId, 'old');
+ assert.equal(sortItems(items, 'created')[0].sessionId, 'new');
+ const other = { sessionId: a.sessionId, route: { ...route, connectionId: 'other' } };
+ const next = saveStatus(storage, rawStorage, other, 'working');
+ assert.equal(next.details[identityKey(other)].last_active, 0);
+ assert.equal(next.details[identityKey(other)].started_at, 0);
+});
+test('controller slot registration keeps exact catalog dates; unknown owner rejects', async () => {
+ const { storage, rawStorage } = fixture();
+ const host = { profileRoutes: async () => [route], listPersistedSessions: async () => ({ sessions: [{ id: 'live', _lineage_root_id: a.sessionId, profile: 'backend', last_active: 100, started_at: 50 }], total: 1, offset: 0 }), notify: () => {} };
+ const controller = createController({ storage, onDispose: () => {} }, host, atom, rawStorage, route => host.listPersistedSessions(route));
+ await controller.refresh();
+ const native = { sessionId: a.sessionId, title: 'From native menu', route };
+ controller.setRowStatus(native, 'working');
+ let details = storage.get(STORAGE_KEY).details[identityKey(a)];
+ assert.equal(details.last_active, 100); assert.equal(details.started_at, 50);
+ controller.state.set({ ...controller.state.get(), catalog: { items: [{ ...a, last_active: 200, started_at: 50 }], routes: [route], issues: [] } });
+ controller.setStatus(native, 'paused');
+ details = storage.get(STORAGE_KEY).details[identityKey(a)];
+ assert.equal(details.last_active, 200); assert.equal(details.started_at, 50);
+ controller.setRowStatus({ ...native, sessionId: 'unknown' }, 'working');
+ details = storage.get(STORAGE_KEY).details[identityKey({ ...native, sessionId: 'unknown' })];
+ assert.equal(details, undefined);
+ controller.setStatus(native, 'unclassified');
+ assert.equal(storage.get(STORAGE_KEY).details[identityKey(a)], undefined);
+});
