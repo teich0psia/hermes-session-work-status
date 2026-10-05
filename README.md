@@ -1,42 +1,46 @@
 # Session Work Status
 
-Hermes Desktopのセッションに、手動で「未分類・作業中・保留・完了」の目印を付けるUIプラグインです。既存のセッション行に状態を表示し、「作業セッション」ペインで状態や所有者別に絞り込めます。CLIやWeb Dashboard向けのプラグインではありません。
+**English** | [日本語](README.ja.md)
 
-**ここでの「作業中」はユーザーが付ける分類であり、AIが実行中という意味ではありません。** AIの応答終了や会話の再開で分類は変わりません。「完了」にしても会話の停止・削除・アーカイブは行いません。
+A UI plugin for manually labeling Hermes Desktop sessions as Unclassified, Working, On hold, or Done. It adds status badges to existing session rows and a Work sessions pane for filtering by status and owner. It is not a plugin for the CLI or Web Dashboard.
 
-| 目印 | 状態 | 用途 |
+**“Working” is a label you assign, not an indication that the AI is running.** Labels do not change when the AI finishes responding or you resume a conversation. Marking a session as Done does not stop, delete, or archive the conversation.
+
+The shipped plugin UI is in Japanese. The English names below are translations; the original labels are included so you can find the controls.
+
+| Mark | Status (UI label) | Purpose |
 |---|---|---|
-| ○ | 未分類 | まだ分類していない。既存・新規セッションの初期値 |
-| ● | 作業中 | 自分が取り組んでいる作業 |
-| Ⅱ | 保留 | あとで戻る作業 |
-| ✓ | 完了 | 自分として区切りが付いた作業 |
+| ○ | Unclassified (未分類) | Not yet classified; the default for existing and new sessions |
+| ● | Working (作業中) | Work you are currently working on |
+| Ⅱ | On hold (保留) | Work you intend to return to later |
+| ✓ | Done (完了) | Work you consider finished for now |
 
-## 対応環境と検証状況
+## Compatibility and verification status
 
-- バージョン: `0.1.0`。プラグインID: `session-work-status`。
-- 対象: [Hermes Desktop](https://hermes-agent.nousresearch.com/docs/user-guide/desktop)。Desktop側に`SESSION_ROW_AREAS`、`host.profileRoutes()`、`host.listPersistedSessions()`を提供するSDKが必要です。
-- API契約の照合先はHermesソース`3ebbaf524344f93943169e63854cb952541563f9`です。最低対応リリース番号は未確定です。古いDesktopではインポートや一覧取得に失敗する場合があります。
-- 作成元環境には未インストールです。Node試験10件とChromiumハーネス試験15件の合格記録がありますが、**native Electronでのロード・表示、実SDK bridge/API、実際の複数接続は未検証**です。macOS・Windowsでの動作確認も行っていません。
+- Version: `0.1.0`. Plugin ID: `session-work-status`.
+- Target: [Hermes Desktop](https://hermes-agent.nousresearch.com/docs/user-guide/desktop). The Desktop SDK must provide `SESSION_ROW_AREAS`, `host.profileRoutes()`, and `host.listPersistedSessions()`.
+- The API contract was checked against Hermes source revision `3ebbaf524344f93943169e63854cb952541563f9`. The minimum supported release has not been established. Older Desktop versions may fail to import the plugin or fetch session lists.
+- The plugin has not been installed in the environment where it was developed. Existing verification records report 10 passing Node tests and 15 passing Chromium harness tests, but **loading and rendering in native Electron, the real SDK bridge/API, and actual multiple connections remain unverified**. Operation on macOS and Windows has not been tested either.
 
-検証の範囲と制約は[検証状況](docs/verification.md)を参照してください。
+See [Verification status (Japanese)](docs/verification.md) for the scope and limitations of verification.
 
-## インストール
+## Installation
 
-コピーするのは、このリポジトリ直下の[`plugin.js`](plugin.js)だけです。ビルド済みの単一ESMファイルで、利用時のNode.js・npm・Pythonのインストールは不要です。Hermes SDKとReactはDesktopから提供されます。Python側のプラグイン、`manifest.json`、`config.yaml`への追加は不要です。
+Copy only [`plugin.js`](plugin.js) from the root of this repository. It is a prebuilt, single-file ESM bundle; Node.js, npm, and Python are not required to use it. Desktop supplies the Hermes SDK and React. You do not need a Python-side plugin, a `manifest.json`, or any additions to `config.yaml`.
 
-### 1. Desktop側のプラグインフォルダーを確認する
+### 1. Locate Desktop's plugin directory
 
-配置先は、Desktopアプリが起動時に使うホームの次の場所です。
+Place the file under the home directory the Desktop app uses at startup:
 
 ```text
-<Desktopのホーム>/desktop-plugins/session-work-status/plugin.js
+<Desktop home>/desktop-plugins/session-work-status/plugin.js
 ```
 
-通常のホームは`~/.hermes`です。Desktopを別の`HERMES_HOME`で起動している場合は、そのホームを使います。これは**アプリ共通の配置先**であり、ウィンドウで選択中のバックエンドプロファイルのホームではありません。プロファイルや接続先ごとにコピーしたり、リモートGateway側へ配置したりする必要はありません。
+The usual home is `~/.hermes`. If Desktop starts with a different `HERMES_HOME`, use that directory instead. This is an **app-wide installation location**, not the home of the backend profile selected in a window. You do not need a copy for each profile or connection, nor do you need to install it on a remote Gateway.
 
-### 2. ファイルをコピーする
+### 2. Copy the file
 
-macOS/Linuxのシェルでは、リポジトリ直下で次を実行します。`DESKTOP_HOME`はDesktopの実際のホームに合わせて変更してください。シェルの`HERMES_HOME`がDesktopと同じとは限らないため、ここでは配置先を明示します。
+In a macOS/Linux shell, run the following from the repository root. Change `DESKTOP_HOME` to match Desktop's actual home. The destination is explicit because your shell's `HERMES_HOME` may differ from Desktop's.
 
 ```sh
 DESKTOP_HOME="$HOME/.hermes"
@@ -44,81 +48,81 @@ mkdir -p "$DESKTOP_HOME/desktop-plugins/session-work-status"
 cp plugin.js "$DESKTOP_HOME/desktop-plugins/session-work-status/plugin.js"
 ```
 
-Windowsではファイル管理ツールで同じ構成のフォルダーを作成し、`plugin.js`をコピーしてください。これは配置方法の案内であり、Windowsでの動作確認済みという意味ではありません。更新時は既存の`plugin.js`を置き換えます。変更済みのローカル版がある場合は、先にバックアップしてください。
+On Windows, use a file manager to create the same directory structure and copy `plugin.js` into it. These are placement instructions, not a claim that Windows operation has been verified. To update the plugin, replace the existing `plugin.js`. Back up any locally modified version first.
 
-### 3. Desktopで読み込む
+### 3. Load it in Desktop
 
-公式SDKでは、保存後の自動ロードとホットリロードが提供されています。表示されない場合はCmd/Ctrl+Kのコマンドパレットで **Reload desktop plugins** を実行し、**Capabilities → Plugins** で **Session Work Status** の有効状態を確認してください。読み込みエラーの通知が出た場合は、コピー先・ファイル名・DesktopのSDK対応を確認します。
+The official SDK provides automatic loading after the file is saved and hot reload. If the plugin does not appear, open the command palette with Cmd/Ctrl+K and run **Reload desktop plugins**, then check that **Session Work Status** is enabled under **Capabilities → Plugins**. If a loading error is reported, check the destination, filename, and Desktop's SDK compatibility.
 
-Gatewayの再起動やHermes本体の変更は不要です。このリポジトリの準備作業では、インストールも再起動も行っていません。
+No Gateway restart or changes to Hermes itself are required. No installation or restart was performed while preparing this repository.
 
-## 使い方
+## Usage
 
-1. 元のセッションリストで、行の状態バッジをクリックします。
-2. メニューから「未分類・作業中・保留・完了」を選びます。メニューを開くと所有者一覧を再取得するため、更新中は選択できません。
-3. 「作業セッション」ペインの状態ボタンと「所有者」で一覧を絞り込みます。所有者は`接続ID / バックエンドプロファイル名`として表示されます。
+1. Click the status badge on a row in the original session list.
+2. Select Unclassified (未分類), Working (作業中), On hold (保留), or Done (完了) from the menu. Opening the menu refreshes the owner list; selection is disabled while the refresh is in progress.
+3. In the Work sessions (作業セッション) pane, filter the list with the status buttons and the Owner (所有者) selector. Owners are shown as `connection ID / backend profile name`.
 
-ペインの初期表示は「作業中」だけです。初めて使うときは「すべて」または「未分類」を選んでください。状態を変更すると現在の絞り込みから消える場合があります。続けて分類する場合は「すべて」を選びます。元のセッションリストの絞り込みには影響しません。
+The pane initially shows only Working (作業中) sessions. When using it for the first time, select All (すべて) or Unclassified (未分類). Changing a status may remove the session from the current filtered view. Select All (すべて) to keep classifying sessions without that happening. These filters do not affect the original session list.
 
-キーボードでの変更は、ペイン内の状態ボタンとメニューを使います。行バッジは、Desktop本体の行ボタン内に配置するため、独立したTab移動先を持たないポインター操作専用の表示です。行本来のEnter/Spaceによる会話表示は維持します。バッジのクリックは会話表示や親行の操作へ伝播させません。
+For keyboard access, use the status buttons and menus in the pane. The row badge sits inside Desktop's own row button, so it is a pointer-only control without its own Tab stop. The row's normal Enter/Space behavior for opening a conversation is preserved. Clicking the badge does not propagate to the parent row or open the conversation.
 
-ペインは分類専用です。会話を開く場合は元のセッションリストを使ってください。新規セッションなどが見つからない場合は、ペインの **一覧を更新** を押します。
+The pane is only for classification. Use the original session list to open conversations. If you cannot find a session, such as a newly created one, click **Refresh list (一覧を更新)** in the pane.
 
-## 保存先とデータの扱い
+## Storage and data handling
 
-状態はDesktopのrenderer localStorageに、次のキーで保存します。
+Statuses are stored in Desktop's renderer localStorage under this key:
 
 ```text
 hermes.plugin.session-work-status.work-status-v1
 ```
 
-保存するのは`接続ID + バックエンドのtargetProfile + セッションの永続ID`と状態です。会話本文・タイトルは保存しません。タイトルなどは一覧表示のために接続先から取得します。プロファイルの自動分離をSDK任せにせず、この組み合わせで保存を分けています。Desktopのルーティング用`profile`と保存先の`targetProfile`は区別します。
+Each stored entry consists of `connection ID + backend targetProfile + persistent session ID` and its status. Conversation content and titles are not stored. Titles and other display information are fetched from the connected backend. Storage is separated using this combination rather than relying on the SDK to isolate profiles automatically. Desktop's routing `profile` is distinct from the storage identity's `targetProfile`.
 
-- 圧縮で実行中のセッションIDが変わっても、永続IDが同じなら分類を維持します。分岐・新規セッションは別の分類です。
-- サーバー保存や他端末との同期はありません。DesktopのアプリデータやlocalStorageを消すと分類が失われます。
-- 不明な保存形式や壊れたJSONは上書きせず、変更を止めて理由を表示します。保存は読み戻して確認し、失敗時に成功したようには表示しません。自動修復や全消去は行いません。
-- 別ウィンドウのstorageイベントは再読込みしますが、同時書込みのトランザクション保証はありません。
+- If compaction changes the live session ID, the label is retained as long as the persistent ID stays the same. Forked and new sessions have separate labels.
+- There is no server-side storage or synchronization with other devices. Clearing Desktop's app data or localStorage removes the labels.
+- Unknown storage formats and malformed JSON are not overwritten. The plugin blocks changes and displays the reason. Writes are verified by reading them back; a failed write is not presented as a success. There is no automatic repair or bulk deletion.
+- Storage events from other windows trigger a reread, but concurrent writes have no transactional guarantee.
 
-## 一覧取得と所有者判定の制限
+## Session listing and owner-resolution limits
 
-SDKで列挙できる各所有者について、作成日時順の最新500件と、バックエンドが追加するピン留め分を取得します。非表示・アーカイブ済みセッションは対象外です。全履歴、未列挙の接続、取得中に変化したリモート履歴まで網羅するものではありません。
+For each owner the SDK can enumerate, the plugin fetches the latest 500 sessions by creation time, plus any pinned sessions added by the backend. Hidden and archived sessions are excluded. This does not cover the full history, connections that were not enumerated, or remote history that changes during retrieval.
 
-行のSDKスロットは永続セッションIDだけを渡し、所有者を渡しません。そのため、現在選択中の接続やプロファイルを行の所有者と決めつけず、取得一覧から確認します。次の場合は行からの変更を止めます。
+The SDK's row slot provides only the persistent session ID, not the owner. The plugin therefore checks the fetched list rather than assuming a row belongs to the currently selected connection or profile. Changes from row badges are blocked when:
 
-- 同じ永続IDが複数の所有者にある、または一覧に見つからない。
-- 所有者一覧の取得に一部失敗がある。
-- いずれかの所有者の取得行数が500件以上で、一覧の網羅性を確認できない。ちょうど500件の場合も保守的に停止します。ピン留め追加で501件以上になる場合も同様です。
+- The same persistent ID appears under multiple owners, or is not found in the list.
+- Retrieval fails for any part of the owner list.
+- Any owner's fetched page contains 500 or more rows, so completeness cannot be confirmed. Exactly 500 rows also triggers this conservative block, as does a page of 501 or more rows due to additional pinned sessions.
 
-バックエンドの`total`は非表示セッションを含むため、短いページで`total`と取得行数が違うだけでは停止しません。停止理由はバッジのホバーとペインに表示します。ペインでは、取得できたセッションの明示された所有者を確認して変更できます。
+The backend's `total` includes hidden sessions. A difference between `total` and the fetched row count on a short page does not, by itself, block changes. The reason for a block appears when you hover over the badge and in the pane. In the pane, you can check the explicit owner of a fetched session and change its status there.
 
-一覧の取得は初回表示、プロファイル・接続の切替、明示更新、状態メニューを開いた時に行います。定期ポーリングやGateway JSON-RPCは使いませんが、SDK経由の接続先APIへの読取りは発生します。同時取得は最大3件です。無効化・リロード後は未開始の取得を止めますが、進行中のSDKリクエストにはキャンセル手段がありません。
+Lists are fetched on initial display, when switching profiles or connections, on an explicit refresh, and when opening a status menu. There is no periodic polling or Gateway JSON-RPC, but the plugin does make read requests to connected backends' APIs through the SDK. At most 3 requests run concurrently. Disabling or reloading the plugin stops retrieval that has not yet started; the SDK provides no way to cancel requests already in progress.
 
-## 無効化・削除
+## Disabling or removing the plugin
 
-**Capabilities → Plugins** で無効化できます。ファイルを取り除く場合は、上記の配置先の`plugin.js`を削除してください。無効化やファイル削除はlocalStorageの分類を消去する操作ではありません。分類は会話自体とは独立しているため、会話の削除やアーカイブとも連動して消去しません。
+Disable it under **Capabilities → Plugins**. To remove the file, delete `plugin.js` from the installation location described above. Disabling the plugin or removing the file does not erase the labels in localStorage. Labels are independent of conversations and are not automatically removed when a conversation is deleted or archived.
 
-## ビルドと開発用チェック
+## Build and development checks
 
-通常の利用では不要です。ソースから生成する場合は、Node.jsとnpmを用意し、リポジトリ直下で実行します。公開準備のビルド確認環境はNode.js `26.7.0` / npm `11.19.0`です。他のバージョンの対応範囲は未確認です。
+These steps are not needed for normal use. To generate the bundle from source, install Node.js and npm, then run the following from the repository root. The build was checked during publication preparation with Node.js `26.7.0` / npm `11.19.0`. Compatibility with other versions has not been verified.
 
 ```sh
 npm ci --ignore-scripts
-npm run build       # src/plugin.jsから単一plugin.jsを生成
-npm run check       # buildとNode試験
+npm run build       # Generate a single plugin.js from src/plugin.js
+npm run check       # Build and run the Node tests
 node --check plugin.js
 git diff --check
 ```
 
-`src/core.js`が識別・保存・一覧判定、`src/controller.js`が取得と破棄処理、`src/plugin.js`がUIの正本です。`plugin.js`は生成物ですが、利用者がそのままコピーできるようGitに含めます。`package.json`の`private: true`はnpmへの誤公開防止であり、GitHubの公開範囲を指定するものではありません。
+`src/core.js` is the source of truth for identity, storage, and catalog validation; `src/controller.js` handles retrieval and disposal; `src/plugin.js` defines the UI. Although `plugin.js` is generated, it is tracked in Git so users can copy it directly. The `private: true` setting in `package.json` prevents accidental publication to npm; it does not control GitHub repository visibility.
 
-Chromiumハーネスと隔離バックエンド試験の準備は[開発用検証手順](docs/development.md)に分けています。
+Setup for the Chromium harness and isolated backend tests is covered in [Development verification instructions (Japanese)](docs/development.md).
 
-## ライセンス
+## License
 
-[MIT License](LICENSE)です。利用・改変・再配布・商用利用が可能です。コピーまたは主要部分を再配布する際は、著作権表示と許諾文を保持してください。無保証です。Hermes SDK・React・開発依存には、それぞれのライセンスが適用されます。
+Licensed under the [MIT License](LICENSE). Use, modification, redistribution, and commercial use are permitted. The copyright notice and permission notice must be included in all copies or substantial portions of the software. The software is provided without warranty. The Hermes SDK, React, and development dependencies remain subject to their respective licenses.
 
-## 参照
+## References
 
 - [Hermes Desktop Plugin SDK](https://hermes-agent.nousresearch.com/docs/developer-guide/desktop-plugin-sdk)
-- [検証状況・互換性・出典](docs/verification.md)
-- [開発用検証手順](docs/development.md)
+- [Verification status, compatibility, and sources (Japanese)](docs/verification.md)
+- [Development verification instructions (Japanese)](docs/development.md)
